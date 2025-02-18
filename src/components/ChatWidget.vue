@@ -48,7 +48,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { publishEvent, subscribeToEvents } from '../lib/nostr'
+import { sendEncryptedMessage, subscribeToEvents, decryptMessage } from '../lib/nostr'
 import { useNostrStore } from '../stores/nostr'
 
 const store = useNostrStore()
@@ -66,13 +66,25 @@ onMounted(() => {
   void subscribeToEvents(
     [
       {
-        kinds: [1],
+        kinds: [4],
+        '#p': [store.publicKey],
+        authors: [store.supportPublicKey],
+      },
+      {
+        kinds: [4],
         '#p': [store.supportPublicKey],
+        authors: [store.publicKey],
       },
     ],
     (event) => {
-      store.addMessage(event)
-      scrollToBottom()
+      void (async () => {
+        const decryptedContent = await decryptMessage(event, store.privateKey)
+        store.addMessage({
+          ...event,
+          content: decryptedContent,
+        })
+        scrollToBottom()
+      })()
     },
   )
 })
@@ -88,14 +100,7 @@ function scrollToBottom() {
 async function sendMessage() {
   if (!newMessage.value.trim()) return
 
-  await publishEvent(
-    {
-      kind: 1,
-      content: newMessage.value,
-      tags: [['p', store.supportPublicKey]], // Tag the support public key
-    },
-    store.privateKey,
-  )
+  await sendEncryptedMessage(newMessage.value, store.supportPublicKey, store.privateKey)
 
   newMessage.value = ''
 }

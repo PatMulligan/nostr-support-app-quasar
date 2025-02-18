@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { generateKeyPair, type NostrEvent } from '../lib/nostr'
+import { generateKeyPair as genKeyPair, type NostrEvent, npubToHex } from '../lib/nostr'
 
 const STORAGE_KEY = 'nostr-support-keys'
 
@@ -21,10 +21,17 @@ export const useNostrStore = defineStore('nostr', () => {
   })
 
   // Actions
-  function initialize(config: { supportPubKey: string }) {
-    if (isInitialized.value) return
+  function logout() {
+    localStorage.removeItem(STORAGE_KEY)
+    privateKey.value = ''
+    publicKey.value = ''
+    messages.value = []
+    isInitialized.value = false
+  }
 
-    supportPublicKey.value = config.supportPubKey
+  function initialize(config: { supportPubKey: string }) {
+    // Convert npub to hex
+    supportPublicKey.value = npubToHex(config.supportPubKey)
 
     // Try to load existing keys from localStorage
     const savedKeys = localStorage.getItem(STORAGE_KEY)
@@ -32,23 +39,10 @@ export const useNostrStore = defineStore('nostr', () => {
       const { sk, pk } = JSON.parse(savedKeys)
       privateKey.value = sk
       publicKey.value = pk
-    } else {
-      // Generate new keypair if none exists
-      const keys = generateKeyPair()
-      privateKey.value = keys.privateKey
-      publicKey.value = keys.publicKey
-
-      // Save to localStorage
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          sk: keys.privateKey,
-          pk: keys.publicKey,
-        }),
-      )
+      isInitialized.value = true
+      return true
     }
-
-    isInitialized.value = true
+    return false
   }
 
   function addMessage(event: NostrEvent) {
@@ -59,6 +53,13 @@ export const useNostrStore = defineStore('nostr', () => {
 
   function clearMessages() {
     messages.value = []
+  }
+
+  function generateKeyPair() {
+    const keys = genKeyPair()
+    privateKey.value = keys.privateKey
+    publicKey.value = keys.publicKey
+    return keys
   }
 
   return {
@@ -72,5 +73,7 @@ export const useNostrStore = defineStore('nostr', () => {
     initialize,
     addMessage,
     clearMessages,
+    logout,
+    generateKeyPair,
   }
 })
