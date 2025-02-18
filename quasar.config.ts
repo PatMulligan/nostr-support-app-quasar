@@ -1,7 +1,7 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
-import { defineConfig } from '#q-app/wrappers';
+import { defineConfig } from '#q-app/wrappers'
 
 export default defineConfig((/* ctx */) => {
   return {
@@ -11,13 +11,10 @@ export default defineConfig((/* ctx */) => {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: [
-    ],
+    boot: [],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#css
-    css: [
-      'app.scss'
-    ],
+    css: ['app.scss'],
 
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
@@ -36,13 +33,13 @@ export default defineConfig((/* ctx */) => {
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#build
     build: {
       target: {
-        browser: [ 'es2022', 'firefox115', 'chrome115', 'safari14' ],
-        node: 'node20'
+        browser: ['es2022', 'firefox115', 'chrome115', 'safari14'],
+        node: 'node20',
       },
 
       typescript: {
         strict: true,
-        vueShim: true
+        vueShim: true,
         // extendTsConfig (tsConfig) {}
       },
       vueRouterMode: 'history', // available values: 'hash', 'history'
@@ -77,6 +74,24 @@ export default defineConfig((/* ctx */) => {
           { server: false },
         ],
       ],
+
+      // Ensure we're building the nostr bundle
+      extendViteConf(viteConf) {
+        viteConf.build = {
+          ...viteConf.build,
+          rollupOptions: {
+            input: {
+              app: 'index.html',
+              'nostr-widget': 'src/widget.ts',
+            },
+            output: {
+              entryFileNames: '[name].bundle.js',
+              chunkFileNames: '[name].[hash].js',
+              assetFileNames: '[name].[ext]',
+            },
+          },
+        }
+      },
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
