@@ -7,7 +7,7 @@
           <template v-for="message in store.sortedMessages" :key="message.id">
             <q-chat-message
               :name="message.pubkey === store.publicKey ? 'You' : 'Support'"
-              :text="[message.content]"
+              :text="[message.decryptedContent || message.content]"
               :sent="message.pubkey === store.publicKey"
               :avatar="`https://robohash.org/${message.pubkey}`"
               :stamp="formatDate(message.created_at)"
@@ -61,21 +61,19 @@ function subscribeToMessages() {
     [
       {
         kinds: [4],
-        '#p': [store.supportPublicKey],
+        '#p': [store.publicKey],
+        authors: [store.supportPublicKey],
       },
       {
         kinds: [4],
-        authors: [store.supportPublicKey],
-        '#p': [store.publicKey],
+        '#p': [store.supportPublicKey],
+        authors: [store.publicKey],
       },
     ],
     (event) => {
       void (async () => {
         const decryptedContent = await decryptMessage(event, store.privateKey)
-        store.addMessage({
-          ...event,
-          content: decryptedContent,
-        })
+        store.addMessage(event, decryptedContent)
         scrollToBottom()
       })()
     },

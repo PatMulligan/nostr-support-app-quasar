@@ -4,11 +4,15 @@ import { generateKeyPair as genKeyPair, type NostrEvent, npubToHex } from '../li
 
 const STORAGE_KEY = 'nostr-support-keys'
 
+interface StoredMessage extends NostrEvent {
+  decryptedContent: string | undefined
+}
+
 export const useNostrStore = defineStore('nostr', () => {
   const privateKey = ref<string>('')
   const publicKey = ref<string>('')
   const supportPublicKey = ref<string>('')
-  const messages = ref<NostrEvent[]>([])
+  const messages = ref<StoredMessage[]>([])
   const isInitialized = ref(false)
 
   // Computed properties
@@ -45,9 +49,13 @@ export const useNostrStore = defineStore('nostr', () => {
     return false
   }
 
-  function addMessage(event: NostrEvent) {
+  function addMessage(event: NostrEvent, decryptedContent?: string) {
     if (!messages.value.some((m) => m.id === event.id)) {
-      messages.value.push(event)
+      const storedMessage: StoredMessage = {
+        ...event,
+        decryptedContent: decryptedContent || undefined,
+      }
+      messages.value.push(storedMessage)
     }
   }
 

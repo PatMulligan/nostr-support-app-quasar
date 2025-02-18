@@ -106,7 +106,14 @@ export async function sendEncryptedMessage(
 
 export async function decryptMessage(event: NostrEvent, privateKey: string) {
   try {
-    const decrypted = await window.NostrTools.nip04.decrypt(privateKey, event.pubkey, event.content)
+    // For messages we sent, we need to use the recipient's pubkey (from p tag)
+    // For messages we received, we use the sender's pubkey
+    const pubkey =
+      event.pubkey === window.NostrTools.getPublicKey(privateKey)
+        ? event.tags.find((tag) => tag[0] === 'p')?.[1] || event.pubkey
+        : event.pubkey
+
+    const decrypted = await window.NostrTools.nip04.decrypt(privateKey, pubkey, event.content)
     return decrypted
   } catch (error) {
     console.error('Failed to decrypt message:', error)

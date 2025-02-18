@@ -23,7 +23,7 @@
         <template v-for="message in store.sortedMessages" :key="message.id">
           <q-chat-message
             :name="message.pubkey === store.publicKey ? 'You' : 'Support'"
-            :text="[message.content]"
+            :text="[message.decryptedContent || message.content]"
             :sent="message.pubkey === store.publicKey"
             :received="message.pubkey !== store.publicKey"
           />
