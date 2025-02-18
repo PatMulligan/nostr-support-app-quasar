@@ -2,8 +2,8 @@
   <q-page class="chat-container">
     <template v-if="store.isInitialized">
       <!-- Messages area -->
-      <div class="chat-messages q-pa-md" ref="messageContainer">
-        <q-scroll-area style="height: 100%">
+      <div class="chat-messages q-pa-md">
+        <q-scroll-area ref="scrollArea" style="height: 100%">
           <template v-for="message in store.sortedMessages" :key="message.id">
             <q-chat-message
               :name="message.pubkey === store.publicKey ? 'You' : 'Support'"
@@ -44,10 +44,11 @@ import { sendEncryptedMessage, subscribeToEvents, decryptMessage } from '../lib/
 import { useNostrStore } from '../stores/nostr'
 import { date } from 'quasar'
 import LoginDialog from '../components/LoginDialog.vue'
+import { QScrollArea } from 'quasar'
 
 const store = useNostrStore()
 const newMessage = ref('')
-const messageContainer = ref<HTMLElement | null>(null)
+const scrollArea = ref<InstanceType<typeof QScrollArea> | null>(null)
 
 onMounted(() => {
   // Only subscribe to messages if we're initialized
@@ -82,8 +83,10 @@ function subscribeToMessages() {
 
 function scrollToBottom() {
   setTimeout(() => {
-    if (messageContainer.value) {
-      messageContainer.value.scrollTop = messageContainer.value.scrollHeight
+    const scrollEl = scrollArea.value?.$el as HTMLElement
+    if (scrollEl) {
+      const height = scrollEl.scrollHeight
+      scrollArea.value?.setScrollPosition('vertical', height)
     }
   }, 100)
 }

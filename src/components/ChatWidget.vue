@@ -19,15 +19,17 @@
         </div>
       </q-card-section>
 
-      <q-card-section class="chat-messages" ref="messageContainer">
-        <template v-for="message in store.sortedMessages" :key="message.id">
-          <q-chat-message
-            :name="message.pubkey === store.publicKey ? 'You' : 'Support'"
-            :text="[message.decryptedContent || message.content]"
-            :sent="message.pubkey === store.publicKey"
-            :received="message.pubkey !== store.publicKey"
-          />
-        </template>
+      <q-card-section class="chat-messages">
+        <q-scroll-area ref="scrollArea" style="height: 100%">
+          <template v-for="message in store.sortedMessages" :key="message.id">
+            <q-chat-message
+              :name="message.pubkey === store.publicKey ? 'You' : 'Support'"
+              :text="[message.decryptedContent || message.content]"
+              :sent="message.pubkey === store.publicKey"
+              :received="message.pubkey !== store.publicKey"
+            />
+          </template>
+        </q-scroll-area>
       </q-card-section>
 
       <q-card-section class="chat-input">
@@ -50,11 +52,12 @@
 import { ref, onMounted } from 'vue'
 import { sendEncryptedMessage, subscribeToEvents, decryptMessage } from '../lib/nostr'
 import { useNostrStore } from '../stores/nostr'
+import { QScrollArea } from 'quasar'
 
 const store = useNostrStore()
 const isOpen = ref(false)
 const newMessage = ref('')
-const messageContainer = ref<HTMLElement | null>(null)
+const scrollArea = ref<InstanceType<typeof QScrollArea> | null>(null)
 
 onMounted(() => {
   // Initialize the store
@@ -91,8 +94,10 @@ onMounted(() => {
 
 function scrollToBottom() {
   setTimeout(() => {
-    if (messageContainer.value) {
-      messageContainer.value.scrollTop = messageContainer.value.scrollHeight
+    const scrollEl = scrollArea.value?.$el as HTMLElement
+    if (scrollEl) {
+      const height = scrollEl.scrollHeight
+      scrollArea.value?.setScrollPosition('vertical', height)
     }
   }, 100)
 }
