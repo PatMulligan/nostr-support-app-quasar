@@ -39,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { sendEncryptedMessage, subscribeToEvents, decryptMessage } from '../lib/nostr'
 import { useNostrStore } from '../stores/nostr'
 import { date } from 'quasar'
@@ -51,11 +51,20 @@ const newMessage = ref('')
 const scrollArea = ref<InstanceType<typeof QScrollArea> | null>(null)
 
 onMounted(() => {
-  // Only subscribe to messages if we're initialized
   if (store.isInitialized) {
     subscribeToMessages()
   }
 })
+
+// Watch for initialization state changes
+watch(
+  () => store.isInitialized,
+  (isInitialized) => {
+    if (isInitialized) {
+      subscribeToMessages()
+    }
+  },
+)
 
 function subscribeToMessages() {
   void subscribeToEvents(
@@ -83,11 +92,7 @@ function subscribeToMessages() {
 
 function scrollToBottom() {
   setTimeout(() => {
-    const scrollEl = scrollArea.value?.$el as HTMLElement
-    if (scrollEl) {
-      const height = scrollEl.scrollHeight
-      scrollArea.value?.setScrollPosition('vertical', height)
-    }
+    scrollArea.value?.setScrollPercentage('vertical', 100)
   }, 100)
 }
 

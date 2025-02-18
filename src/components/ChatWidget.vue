@@ -19,16 +19,18 @@
         </div>
       </q-card-section>
 
-      <q-card-section class="chat-messages">
-        <q-scroll-area ref="scrollArea" style="height: 100%">
-          <template v-for="message in store.sortedMessages" :key="message.id">
-            <q-chat-message
-              :name="message.pubkey === store.publicKey ? 'You' : 'Support'"
-              :text="[message.decryptedContent || message.content]"
-              :sent="message.pubkey === store.publicKey"
-              :received="message.pubkey !== store.publicKey"
-            />
-          </template>
+      <q-card-section class="chat-messages q-pa-none">
+        <q-scroll-area ref="scrollArea" class="chat-scroll">
+          <div class="q-pa-md">
+            <template v-for="message in store.sortedMessages" :key="message.id">
+              <q-chat-message
+                :name="message.pubkey === store.publicKey ? 'You' : 'Support'"
+                :text="[message.decryptedContent || message.content]"
+                :sent="message.pubkey === store.publicKey"
+                :received="message.pubkey !== store.publicKey"
+              />
+            </template>
+          </div>
         </q-scroll-area>
       </q-card-section>
 
@@ -49,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { sendEncryptedMessage, subscribeToEvents, decryptMessage } from '../lib/nostr'
 import { useNostrStore } from '../stores/nostr'
 import { QScrollArea } from 'quasar'
@@ -60,12 +62,27 @@ const newMessage = ref('')
 const scrollArea = ref<InstanceType<typeof QScrollArea> | null>(null)
 
 onMounted(() => {
-  // Initialize the store
   store.initialize({
     supportPubKey: import.meta.env.VITE_SUPPORT_PUBKEY || '',
   })
 
-  // Subscribe to messages
+  if (store.isInitialized) {
+    subscribeToMessages()
+  }
+})
+
+// Watch for initialization state changes
+watch(
+  () => store.isInitialized,
+  (isInitialized) => {
+    if (isInitialized) {
+      subscribeToMessages()
+    }
+  },
+)
+
+// Move subscription logic to a separate function
+function subscribeToMessages() {
   void subscribeToEvents(
     [
       {
@@ -90,15 +107,11 @@ onMounted(() => {
       })()
     },
   )
-})
+}
 
 function scrollToBottom() {
   setTimeout(() => {
-    const scrollEl = scrollArea.value?.$el as HTMLElement
-    if (scrollEl) {
-      const height = scrollEl.scrollHeight
-      scrollArea.value?.setScrollPosition('vertical', height)
-    }
+    scrollArea.value?.setScrollPercentage('vertical', 100)
   }, 100)
 }
 
@@ -132,8 +145,13 @@ async function sendMessage() {
 
 .chat-messages {
   flex: 1;
-  overflow-y: auto;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-scroll {
+  height: 100%;
 }
 
 .chat-input {
