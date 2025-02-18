@@ -72,6 +72,7 @@ import { ref, onMounted, watch } from 'vue'
 import { sendEncryptedMessage, subscribeToEvents, decryptMessage } from '../lib/nostr'
 import { useNostrStore } from '../stores/nostr'
 import { QScrollArea } from 'quasar'
+import { getCurrentInstance } from 'vue'
 
 const store = useNostrStore()
 const isOpen = ref(false)
@@ -79,9 +80,11 @@ const newMessage = ref('')
 const loading = ref(false)
 const scrollArea = ref<InstanceType<typeof QScrollArea> | null>(null)
 
+const supportPubkey = getCurrentInstance()?.appContext.config.globalProperties.$supportPubkey
+
 onMounted(() => {
   store.initialize({
-    supportPubKey: import.meta.env.VITE_SUPPORT_PUBKEY || '',
+    supportPubKey: supportPubkey || import.meta.env.VITE_SUPPORT_PUBKEY || '',
   })
 
   if (store.isInitialized) {
