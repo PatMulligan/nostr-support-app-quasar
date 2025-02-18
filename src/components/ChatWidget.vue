@@ -15,37 +15,54 @@
       <q-card-section class="bg-primary text-white">
         <div class="row items-center justify-between">
           <div class="text-h6">Customer Support</div>
-          <q-btn flat round icon="close" @click="isOpen = false" />
+          <div class="row items-center">
+            <q-btn v-if="store.isInitialized" flat round icon="logout" @click="logout" />
+            <q-btn flat round icon="close" @click="isOpen = false" />
+          </div>
         </div>
       </q-card-section>
 
-      <q-card-section class="chat-messages q-pa-none">
-        <q-scroll-area ref="scrollArea" class="chat-scroll">
-          <div class="q-pa-md">
-            <template v-for="message in store.sortedMessages" :key="message.id">
-              <q-chat-message
-                :name="message.pubkey === store.publicKey ? 'You' : 'Support'"
-                :text="[message.decryptedContent || message.content]"
-                :sent="message.pubkey === store.publicKey"
-                :received="message.pubkey !== store.publicKey"
-              />
-            </template>
-          </div>
-        </q-scroll-area>
-      </q-card-section>
+      <!-- Login state -->
+      <template v-if="!store.isInitialized">
+        <q-card-section class="text-center">
+          <p class="text-body1 q-mb-md">
+            To start chatting, we'll create a private key for you. This key will be saved in your
+            browser and used to identify you in future conversations.
+          </p>
+          <q-btn color="primary" label="Create Key" @click="createKey" :loading="loading" />
+        </q-card-section>
+      </template>
 
-      <q-card-section class="chat-input">
-        <q-input
-          v-model="newMessage"
-          placeholder="Type your message..."
-          dense
-          @keyup.enter="sendMessage"
-        >
-          <template v-slot:after>
-            <q-btn round dense flat icon="send" @click="sendMessage" />
-          </template>
-        </q-input>
-      </q-card-section>
+      <!-- Chat state -->
+      <template v-else>
+        <q-card-section class="chat-messages q-pa-none">
+          <q-scroll-area ref="scrollArea" class="chat-scroll">
+            <div class="q-pa-md">
+              <template v-for="message in store.sortedMessages" :key="message.id">
+                <q-chat-message
+                  :name="message.pubkey === store.publicKey ? 'You' : 'Support'"
+                  :text="[message.decryptedContent || message.content]"
+                  :sent="message.pubkey === store.publicKey"
+                  :received="message.pubkey !== store.publicKey"
+                />
+              </template>
+            </div>
+          </q-scroll-area>
+        </q-card-section>
+
+        <q-card-section class="chat-input">
+          <q-input
+            v-model="newMessage"
+            placeholder="Type your message..."
+            dense
+            @keyup.enter="sendMessage"
+          >
+            <template v-slot:after>
+              <q-btn round dense flat icon="send" @click="sendMessage" />
+            </template>
+          </q-input>
+        </q-card-section>
+      </template>
     </q-card>
   </div>
 </template>
@@ -59,6 +76,7 @@ import { QScrollArea } from 'quasar'
 const store = useNostrStore()
 const isOpen = ref(false)
 const newMessage = ref('')
+const loading = ref(false)
 const scrollArea = ref<InstanceType<typeof QScrollArea> | null>(null)
 
 onMounted(() => {
@@ -71,7 +89,6 @@ onMounted(() => {
   }
 })
 
-// Watch for initialization state changes
 watch(
   () => store.isInitialized,
   (isInitialized) => {
@@ -81,7 +98,30 @@ watch(
   },
 )
 
-// Move subscription logic to a separate function
+function createKey() {
+  loading.value = true
+  try {
+    const keys = store.generateKeyPair()
+    localStorage.setItem(
+      'nostr-support-keys',
+      JSON.stringify({
+        sk: keys.privateKey,
+        pk: keys.publicKey,
+      }),
+    )
+    store.initialize({
+      supportPubKey: import.meta.env.VITE_SUPPORT_PUBKEY || '',
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+function logout() {
+  store.logout()
+  isOpen.value = false
+}
+
 function subscribeToMessages() {
   void subscribeToEvents(
     [
